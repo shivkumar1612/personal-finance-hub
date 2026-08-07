@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Personal Finance Hub</title>
+<style>
+  :root {
+    --bg: #f7f7f5;
+    --card: #ffffff;
+    --ink: #1a1a1a;
+    --muted: #6b6b6b;
+    --accent: #1a5fb4;
+    --accent-soft: #eaf1fb;
+    --border: #e4e4e0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 48px 20px 80px; }
+  h1 { font-size: 30px; margin: 0 0 8px; }
+  .subtitle { color: var(--muted); font-size: 15px; margin-bottom: 30px; max-width: 560px; }
+
+  .privacy-note {
+    background: var(--accent-soft);
+    border-left: 4px solid var(--accent);
+    padding: 14px 18px;
+    border-radius: 6px;
+    font-size: 14px;
+    margin-bottom: 32px;
+  }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+
+  a.card {
+    display: block;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    text-decoration: none;
+    color: inherit;
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+  }
+  a.card:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.06); transform: translateY(-1px); }
+  a.card.disabled { opacity: 0.5; pointer-events: none; }
+
+  .card h2 { font-size: 17px; margin: 0 0 6px; color: var(--accent); }
+  .card p { font-size: 13px; color: var(--muted); margin: 0; }
+  .card .tag {
+    display: inline-block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em;
+    background: #eee; color: var(--muted); padding: 2px 8px; border-radius: 10px; margin-bottom: 8px;
+  }
+  .card .tag.live { background: #e9f7ef; color: #146c3e; }
+
+  .footer-note { font-size: 12px; color: var(--muted); margin-top: 40px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Personal Finance Hub</h1>
+  <div class="subtitle">A small set of calculators to help you understand the mechanics of your own money — compounding, debt, and the true cost of a mortgage. Nothing here tells you what to do with your money. It just shows you what your own numbers are actually doing.</div>
+
+  <div class="privacy-note">
+    <strong>No data is ever collected.</strong> Every calculator here runs entirely in your browser — nothing you type is sent, saved, or shared anywhere. If you want to keep your numbers, use the Export button inside each tool to save a file to your own device.
+  </div>
+
+  <div class="grid">
+    <a class="card" href="mortgage-calculator.html">
+      <div class="tag live">Live</div>
+      <h2>Mortgage Calculator</h2>
+      <p>Term and prepayment often matter more than the interest rate. See what your own numbers do.</p>
+    </a>
+
+    <a class="card disabled" href="#">
+      <div class="tag">Coming soon</div>
+      <h2>Emergency Fund</h2>
+      <p>How many months are you actually covered for, and what would it take to reach 3-6?</p>
+    </a>
+
+    <a class="card disabled" href="#">
+      <div class="tag">Coming soon</div>
+      <h2>Compounding Calculator</h2>
+      <p>The visual cost of starting late vs. starting early.</p>
+    </a>
+
+    <a class="card disabled" href="#">
+      <div class="tag">Coming soon</div>
+      <h2>Debt Payoff</h2>
+      <p>The true cost of only ever paying the minimum on a credit card or loan.</p>
+    </a>
+
+    <a class="card disabled" href="#">
+      <div class="tag">Coming soon</div>
+      <h2>Retirement Cashflow</h2>
+      <p>A multi-currency cashflow planner — GBP / INR / USD.</p>
+    </a>
+
+    <a class="card disabled" href="#">
+      <div class="tag">Coming soon</div>
+      <h2>Subscription Leak</h2>
+      <p>What your recurring costs really add up to, annually and over 10 years.</p>
+    </a>
+  </div>
+
+  <div class="footer-note">Personal Finance Hub · Not financial advice · No data collected, ever</div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mortgage Calculator — Personal Finance Hub</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #f7f7f5;
+    --card: #ffffff;
+    --ink: #1a1a1a;
+    --muted: #6b6b6b;
+    --accent: #1a5fb4;
+    --accent-soft: #eaf1fb;
+    --good: #146c3e;
+    --border: #e4e4e0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 32px 20px 80px; }
+  h1 { font-size: 28px; margin: 0 0 4px; }
+  .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+
+  .story {
+    background: var(--accent-soft);
+    border-left: 4px solid var(--accent);
+    padding: 16px 20px;
+    border-radius: 6px;
+    font-size: 15px;
+    margin-bottom: 24px;
+  }
+  .story p { margin: 0 0 8px; }
+  .story p:last-child { margin-bottom: 0; }
+
+  .disclaimer {
+    background: #fff6e5;
+    border: 1px solid #e8c568;
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: #5c4a12;
+    margin-bottom: 24px;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+  .card h2 { font-size: 17px; margin: 0 0 14px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.03em; }
+  input[type=number], select {
+    width: 100%; padding: 8px 10px; font-size: 15px; border: 1px solid var(--border);
+    border-radius: 5px; font-family: inherit; background: #fff;
+  }
+
+  .mode-toggle { display: flex; gap: 8px; margin-bottom: 20px; }
+  .mode-toggle button {
+    flex: 1; padding: 10px; border-radius: 6px; border: 1px solid var(--border);
+    background: #fff; cursor: pointer; font-family: inherit; font-size: 14px; color: var(--ink);
+  }
+  .mode-toggle button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .scenario-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .scenario-row label { margin: 0; min-width: 220px; text-transform: none; font-size: 14px; color: var(--ink); }
+  .scenario-row input { width: 120px; }
+  .scenario-row .unit { font-size: 13px; color: var(--muted); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); }
+  th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); }
+  td.outcome { color: var(--good); font-weight: bold; }
+  tr.baseline td { color: var(--muted); }
+
+  .toggle-link { color: var(--accent); cursor: pointer; font-size: 14px; text-decoration: underline; }
+  #chartWrap { display: none; margin-top: 16px; }
+
+  .btnbar { display: flex; gap: 10px; margin-top: 8px; }
+  .btnbar button {
+    padding: 8px 14px; border-radius: 6px; border: 1px solid var(--border);
+    background: #fff; cursor: pointer; font-family: inherit; font-size: 13px;
+  }
+  .btnbar button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .feasibility { margin-top: 12px; padding: 10px 14px; border-radius: 6px; font-size: 14px; }
+  .feasibility.ok { background: #e9f7ef; color: var(--good); }
+  .feasibility.warn { background: #fdeeee; color: #a12626; }
+
+  .footer-note { font-size: 12px; color: var(--muted); margin-top: 30px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Mortgage Calculator</h1>
+  <div class="subtitle">Personal Finance Hub — see what your own numbers do, not what you should do with them.</div>
+
+  <div class="story">
+    <p>Mortgage providers and financial news almost always focus on one number: the interest rate. Two other factors get far less attention — the <strong>term</strong> (how long you take to repay) and whether you make any <strong>prepayments</strong> — even though changing either can have a bigger effect on the total interest you actually pay a bank than a modest rate difference does.</p>
+    <p>This calculator shows you that effect using your own numbers. It doesn't tell you what to do with them.</p>
+  </div>
+
+  <div class="disclaimer">
+    <strong>Important:</strong> the prepayment scenarios below assume any extra payment reduces your <em>term</em>, not your monthly payment. Most UK lenders do <strong>not</strong> do this automatically — you usually need to explicitly instruct your bank (a form or a phone call) to apply overpayments to reduce the term rather than just sitting as a credit.
+  </div>
+
+  <div class="disclaimer">
+    <strong>Not financial advice.</strong> This tool is for illustration only, built to help you understand the mechanics of your own numbers. The creator is not a qualified financial advisor, and nothing here is a recommendation. Please speak to a regulated mortgage advisor or financial professional before making any real decisions.
+  </div>
+
+  <div class="card">
+    <h2>Your mortgage</h2>
+    <div class="grid">
+      <div>
+        <label>Currency</label>
+        <select id="currency">
+          <option value="GBP">£ GBP</option>
+          <option value="USD">$ USD</option>
+          <option value="INR">₹ INR</option>
+        </select>
+      </div>
+      <div>
+        <label>Loan amount</label>
+        <input type="text" id="principal" inputmode="numeric" value="300,000">
+      </div>
+      <div>
+        <label>Interest rate (% / year)</label>
+        <input type="number" id="rate" value="4.5" min="0" step="0.05">
+      </div>
+      <div>
+        <label>Term (years)</label>
+        <input type="number" id="term" value="25" min="1" step="1">
+      </div>
+    </div>
+  </div>
+
+  <div class="mode-toggle">
+    <button id="modeExploreBtn" class="active">Explore scenarios</button>
+    <button id="modeGoalBtn">Goal-first: pick a payoff year</button>
+  </div>
+
+  <div class="card" id="exploreCard">
+    <h2>Scenarios (all editable)</h2>
+
+    <div class="scenario-row">
+      <label>Scenario 1 — Lower tenure: new term of</label>
+      <input type="number" id="s1Term" value="20" min="1" step="1">
+      <span class="unit">years (default: your term − 5)</span>
+    </div>
+
+    <div class="scenario-row">
+      <label>Scenario 2 — Extra every month:</label>
+      <input type="number" id="s2Extra" value="150" min="0" step="10">
+      <span class="unit">(default: ~10% of your monthly payment)</span>
+    </div>
+
+    <div class="scenario-row">
+      <label>Scenario 3 — Extra lump sum once a year:</label>
+      <input type="number" id="s3Lump" value="1500" min="0" step="50">
+      <span class="unit">(default: one month's payment — a "13th payment")</span>
+    </div>
+
+    <div class="btnbar">
+      <button class="primary" id="calcBtn">Calculate</button>
+    </div>
+  </div>
+
+  <div class="card" id="goalCard" style="display:none;">
+    <h2>Goal-first mode</h2>
+    <div class="scenario-row">
+      <label>I want to be mortgage-free by:</label>
+      <input type="number" id="goalYear" value="18" min="1" step="1">
+      <span class="unit">years from now</span>
+    </div>
+    <div class="btnbar">
+      <button class="primary" id="goalCalcBtn">Work out what it takes</button>
+    </div>
+    <div id="goalResult"></div>
+  </div>
+
+  <div class="card" id="resultsCard" style="display:none;">
+    <h2>What each choice actually does</h2>
+    <div id="headlinesWrap" style="margin-bottom:16px;"></div>
+    <table id="resultsTable">
+      <thead>
+        <tr><th>Scenario</th><th>Monthly payment</th><th>Actual tenure</th><th>Total principal paid</th><th>Total interest paid</th><th>Total paid</th></tr>
+      </thead>
+      <tbody id="resultsBody"></tbody>
+    </table>
+    <div style="margin-top:14px;">
+      <span class="toggle-link" id="chartToggle">Show balance-over-time chart ▾</span>
+    </div>
+    <div id="chartWrap">
+      <canvas id="balanceChart" height="260"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Save your numbers</h2>
+    <div class="btnbar">
+      <button id="exportBtn">Export as file (.json)</button>
+      <button id="importBtn">Import a saved file</button>
+      <input type="file" id="importFile" accept=".json" style="display:none;">
+    </div>
+    <div class="footer-note" style="text-align:left; margin-top:10px;">Nothing is sent anywhere — your numbers stay in this browser tab. Export gives you a small file you can reopen next time.</div>
+  </div>
+
+  <div class="footer-note">Personal Finance Hub · Mortgage Calculator v1 · Not financial advice</div>
+
+</div>
+
+<script>
+// ---------- Core math ----------
+function calcEMI(principal, monthlyRate, months) {
+  if (months <= 0) return principal;
+  if (monthlyRate === 0) return principal / months;
+  const factor = Math.pow(1 + monthlyRate, months);
+  return principal * monthlyRate * factor / (factor - 1);
+}
+
+// Simulate a repayment schedule month by month.
+// monthlyPayment = the base EMI being paid every month
+// extraMonthly = additional fixed amount paid every month (Scenario 2)
+// lumpSum = additional amount paid every `lumpSumEveryMonths` months (Scenario 3)
+function simulate(principal, monthlyRate, monthlyPayment, extraMonthly, lumpSum, lumpSumEveryMonths, maxMonths) {
+  let balance = principal;
+  let totalInterest = 0;
+  let month = 0;
+  const series = [balance];
+  while (balance > 0.005 && month < maxMonths) {
+    month++;
+    const interest = balance * monthlyRate;
+    let principalPaid = monthlyPayment - interest + extraMonthly;
+    if (lumpSum > 0 && month % lumpSumEveryMonths === 0) {
+      principalPaid += lumpSum;
+    }
+    if (principalPaid < 0) principalPaid = 0; // payment doesn't even cover interest -- shouldn't happen with sane inputs
+    if (principalPaid > balance) principalPaid = balance;
+    balance -= principalPaid;
+    totalInterest += interest;
+    series.push(Math.max(balance, 0));
+  }
+  return { months: month, totalInterest, series, payoff: balance <= 0.005 };
+}
+
+function fmtMoney(value, currency) {
+  const locale = currency === 'GBP' ? 'en-GB' : (currency === 'INR' ? 'en-IN' : 'en-US');
+  return new Intl.NumberFormat(locale, { style: 'currency', currency, maximumFractionDigits: 0 }).format(value);
+}
+
+function fmtYearsMonths(months) {
+  const y = Math.floor(months / 12);
+  const m = Math.round(months % 12);
+  if (y === 0) return m + (m === 1 ? ' month' : ' months');
+  if (m === 0) return y + (y === 1 ? ' year' : ' years');
+  return y + (y === 1 ? ' year ' : ' years ') + m + (m === 1 ? ' month' : ' months');
+}
+
+// ---------- State ----------
+let lastResults = null;
+let chartInstance = null;
+
+function getInputs() {
+  const currency = document.getElementById('currency').value;
+  const principalRaw = document.getElementById('principal').value.replace(/,/g, '');
+  const principal = parseFloat(principalRaw) || 0;
+  const ratePct = parseFloat(document.getElementById('rate').value) || 0;
+  const termYears = parseFloat(document.getElementById('term').value) || 1;
+  return { currency, principal, ratePct, termYears };
+}
+
+function formatPrincipalDisplay() {
+  const el = document.getElementById('principal');
+  const num = parseFloat(el.value.replace(/,/g, '')) || 0;
+  el.value = num.toLocaleString('en-US');
+}
+
+function applyDefaults() {
+  const { principal, ratePct, termYears } = getInputs();
+  const monthlyRate = (ratePct / 100) / 12;
+  const months = Math.round(termYears * 12);
+  const emi = calcEMI(principal, monthlyRate, months);
+
+  document.getElementById('s1Term').value = Math.max(5, Math.round(termYears - 5));
+  document.getElementById('s2Extra').value = Math.round(emi * 0.10);
+  document.getElementById('s3Lump').value = Math.round(emi);
+}
+
+function runExplore() {
+  const { currency, principal, ratePct, termYears } = getInputs();
+  const monthlyRate = (ratePct / 100) / 12;
+  const baseMonths = Math.round(termYears * 12);
+  const baseEMI = calcEMI(principal, monthlyRate, baseMonths);
+  const baseline = simulate(principal, monthlyRate, baseEMI, 0, 0, 12, baseMonths + 2);
+
+  // Scenario 1: lower tenure
+  const s1Months = Math.round(parseFloat(document.getElementById('s1Term').value) * 12);
+  const s1EMI = calcEMI(principal, monthlyRate, s1Months);
+  const s1 = simulate(principal, monthlyRate, s1EMI, 0, 0, 12, s1Months + 2);
+
+  // Scenario 2: monthly prepayment
+  const s2Extra = parseFloat(document.getElementById('s2Extra').value) || 0;
+  const s2 = simulate(principal, monthlyRate, baseEMI, s2Extra, 0, 12, baseMonths + 2);
+
+  // Scenario 3: annual lump sum
+  const s3Lump = parseFloat(document.getElementById('s3Lump').value) || 0;
+  const s3 = simulate(principal, monthlyRate, baseEMI, 0, s3Lump, 12, baseMonths + 2);
+
+  const rows = [
+    { label: 'Baseline — minimum payments', emi: baseEMI, result: baseline, isBaseline: true, extraNote: '' },
+    { label: 'Scenario 1 — Shorter ' + Math.round(s1Months/12) + '-year term', emi: s1EMI, result: s1, isBaseline: false,
+      extraNote: 'own it ' + fmtYearsMonths(baseline.months - s1.months) + ' earlier, pay ' + fmtMoney(s1EMI - baseEMI, currency) + ' more per month' },
+    { label: 'Scenario 2 — +' + fmtMoney(s2Extra, currency) + '/month', emi: baseEMI + s2Extra, result: s2, isBaseline: false,
+      extraNote: 'own it ' + fmtYearsMonths(baseline.months - s2.months) + ' earlier' },
+    { label: 'Scenario 3 — +' + fmtMoney(s3Lump, currency) + '/year lump sum', emi: baseEMI, result: s3, isBaseline: false,
+      extraNote: 'own it ' + fmtYearsMonths(baseline.months - s3.months) + ' earlier' },
+  ];
+
+  renderResults(rows, baseline, currency);
+  lastResults = { rows, baseline, currency };
+}
+
+function renderResults(rows, baseline, currency) {
+  const tbody = document.getElementById('resultsBody');
+  tbody.innerHTML = '';
+
+  const headlineWrap = document.getElementById('headlinesWrap');
+  headlineWrap.innerHTML = '';
+
+  const principalAmount = getInputs().principal;
+
+  const insight = document.createElement('div');
+  insight.className = 'story';
+  insight.style.marginBottom = '16px';
+  insight.innerHTML = '<p><strong>Notice something:</strong> in every scenario below, the total principal paid is the same &mdash; ' +
+    fmtMoney(principalAmount, currency) + ', exactly what was borrowed. That never changes. The only number that moves is how much interest gets paid on top of it, and that\'s what term and prepayment actually control.</p>';
+  headlineWrap.appendChild(insight);
+
+  rows.forEach(r => {
+    // Total principal paid is always the full original loan amount, once fully repaid --
+    // the only thing that changes between scenarios is how much interest is paid on top.
+    const totalInterest = r.result.totalInterest;
+    const grandTotal = principalAmount + totalInterest;
+
+    const tr = document.createElement('tr');
+    if (r.isBaseline) tr.className = 'baseline';
+
+    if (!r.isBaseline) {
+      const monthsEarlier = baseline.months - r.result.months;
+      const interestSaved = baseline.totalInterest - r.result.totalInterest;
+      const headline = document.createElement('div');
+      headline.className = 'feasibility ok';
+      headline.style.marginBottom = '4px';
+      headline.innerHTML = '<strong>' + r.label + ':</strong> own it ' + fmtYearsMonths(monthsEarlier) + ' earlier &mdash; save ' +
+        fmtMoney(interestSaved, currency) + ' in interest &mdash; over an actual tenure of ' + fmtYearsMonths(r.result.months) + '.';
+      headlineWrap.appendChild(headline);
+    }
+
+    tr.innerHTML =
+      '<td>' + r.label + '</td>' +
+      '<td>' + fmtMoney(r.emi, currency) + '</td>' +
+      '<td>' + fmtYearsMonths(r.result.months) + '</td>' +
+      '<td>' + fmtMoney(principalAmount, currency) + '</td>' +
+      '<td>' + fmtMoney(totalInterest, currency) + '</td>' +
+      '<td><strong>' + fmtMoney(grandTotal, currency) + '</strong></td>';
+    tbody.appendChild(tr);
+  });
+  document.getElementById('resultsCard').style.display = 'block';
+  drawChart(rows, currency);
+}
+
+function drawChart(rows, currency) {
+  const ctx = document.getElementById('balanceChart').getContext('2d');
+  const maxLen = Math.max(...rows.map(r => r.result.series.length));
+  const labels = Array.from({length: maxLen}, (_, i) => (i / 12).toFixed(0));
+  const colors = ['#6b6b6b', '#1a5fb4', '#146c3e', '#a12626'];
+  const datasets = rows.map((r, i) => ({
+    label: r.label,
+    data: r.result.series,
+    borderColor: colors[i % colors.length],
+    backgroundColor: 'transparent',
+    borderWidth: r.isBaseline ? 1.5 : 2,
+    pointRadius: 0,
+    tension: 0.1,
+  }));
+  if (chartInstance) chartInstance.destroy();
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { title: { display: true, text: 'Years from now' } },
+        y: { title: { display: true, text: 'Balance remaining (' + currency + ')' } }
+      },
+      plugins: { legend: { position: 'bottom' } }
+    }
+  });
+}
+
+function runGoal() {
+  const { currency, principal, ratePct, termYears } = getInputs();
+  const monthlyRate = (ratePct / 100) / 12;
+  const baseMonths = Math.round(termYears * 12);
+  const baseEMI = calcEMI(principal, monthlyRate, baseMonths);
+  const baseline = simulate(principal, monthlyRate, baseEMI, 0, 0, 12, baseMonths + 2);
+
+  const targetYears = parseFloat(document.getElementById('goalYear').value) || 1;
+  const targetMonths = Math.round(targetYears * 12);
+
+  const resultDiv = document.getElementById('goalResult');
+
+  if (targetMonths >= baseline.months) {
+    resultDiv.innerHTML = '<div class="feasibility ok">Good news — at your current payment, you\'ll already be mortgage-free in ' + fmtYearsMonths(baseline.months) + ', before your target. No extra payment needed.</div>';
+    return;
+  }
+
+  // Binary search for the required monthly extra payment
+  let lo = 0, hi = baseEMI * 5;
+  let bestExtra = hi;
+  for (let i = 0; i < 50; i++) {
+    const mid = (lo + hi) / 2;
+    const sim = simulate(principal, monthlyRate, baseEMI, mid, 0, 12, targetMonths + 24);
+    if (sim.months <= targetMonths) {
+      bestExtra = mid;
+      hi = mid;
+    } else {
+      lo = mid;
+    }
+  }
+
+  const finalSim = simulate(principal, monthlyRate, baseEMI, bestExtra, 0, 12, targetMonths + 24);
+  const interestSaved = baseline.totalInterest - finalSim.totalInterest;
+  const ratio = bestExtra / baseEMI;
+
+  let feasClass = 'ok';
+  let feasText = 'That\'s a manageable increase on top of your current payment.';
+  if (ratio > 1) {
+    feasClass = 'warn';
+    feasText = 'That more than doubles your current monthly payment — worth sanity-checking against your actual budget before committing.';
+  } else if (ratio > 0.5) {
+    feasClass = 'warn';
+    feasText = 'That\'s a significant jump — over half your current payment again, each month.';
+  }
+
+  resultDiv.innerHTML =
+    '<div class="feasibility ' + feasClass + '">' +
+    'To be mortgage-free in ' + fmtYearsMonths(targetMonths) + ', pay an extra <strong>' + fmtMoney(bestExtra, currency) + '</strong> every month ' +
+    '(on top of your ' + fmtMoney(baseEMI, currency) + ' payment). ' +
+    'You\'d save ' + fmtMoney(interestSaved, currency) + ' in interest. ' + feasText +
+    '</div>';
+}
+
+// ---------- Save / export / import ----------
+function exportState() {
+  const state = {
+    currency: document.getElementById('currency').value,
+    principal: document.getElementById('principal').value,
+    rate: document.getElementById('rate').value,
+    term: document.getElementById('term').value,
+    s1Term: document.getElementById('s1Term').value,
+    s2Extra: document.getElementById('s2Extra').value,
+    s3Lump: document.getElementById('s3Lump').value,
+    goalYear: document.getElementById('goalYear').value,
+    savedAt: new Date().toISOString(),
+    tool: 'Personal Finance Hub - Mortgage Calculator v1'
+  };
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'mortgage-calculator-save.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importState(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const state = JSON.parse(e.target.result);
+      if (state.currency) document.getElementById('currency').value = state.currency;
+      if (state.principal) document.getElementById('principal').value = state.principal;
+      if (state.rate) document.getElementById('rate').value = state.rate;
+      if (state.term) document.getElementById('term').value = state.term;
+      if (state.s1Term) document.getElementById('s1Term').value = state.s1Term;
+      if (state.s2Extra) document.getElementById('s2Extra').value = state.s2Extra;
+      if (state.s3Lump) document.getElementById('s3Lump').value = state.s3Lump;
+      if (state.goalYear) document.getElementById('goalYear').value = state.goalYear;
+      runExplore();
+    } catch (err) {
+      alert('Could not read that file — is it a save file exported from this calculator?');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ---------- Wiring ----------
+document.getElementById('modeExploreBtn').addEventListener('click', () => {
+  document.getElementById('modeExploreBtn').classList.add('active');
+  document.getElementById('modeGoalBtn').classList.remove('active');
+  document.getElementById('exploreCard').style.display = 'block';
+  document.getElementById('goalCard').style.display = 'none';
+});
+document.getElementById('modeGoalBtn').addEventListener('click', () => {
+  document.getElementById('modeGoalBtn').classList.add('active');
+  document.getElementById('modeExploreBtn').classList.remove('active');
+  document.getElementById('goalCard').style.display = 'block';
+  document.getElementById('exploreCard').style.display = 'none';
+});
+
+document.getElementById('calcBtn').addEventListener('click', runExplore);
+document.getElementById('goalCalcBtn').addEventListener('click', runGoal);
+
+document.getElementById('chartToggle').addEventListener('click', () => {
+  const wrap = document.getElementById('chartWrap');
+  const showing = wrap.style.display === 'block';
+  wrap.style.display = showing ? 'none' : 'block';
+  document.getElementById('chartToggle').textContent = showing ? 'Show balance-over-time chart ▾' : 'Hide balance-over-time chart ▴';
+});
+
+document.getElementById('exportBtn').addEventListener('click', exportState);
+document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFile').click());
+document.getElementById('importFile').addEventListener('change', (e) => {
+  if (e.target.files.length) importState(e.target.files[0]);
+});
+
+['rate', 'term'].forEach(id => {
+  document.getElementById(id).addEventListener('change', applyDefaults);
+});
+
+const principalEl = document.getElementById('principal');
+principalEl.addEventListener('focus', () => {
+  principalEl.value = principalEl.value.replace(/,/g, '');
+});
+principalEl.addEventListener('blur', () => {
+  formatPrincipalDisplay();
+  applyDefaults();
+});
+
+// Initialize with sensible defaults, then run once
+applyDefaults();
+runExplore();
+</script>
+</body>
+</html>
