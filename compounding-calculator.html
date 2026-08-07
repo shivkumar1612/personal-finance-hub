@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compounding Calculator — Personal Finance Hub</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #f7f7f5;
+    --card: #ffffff;
+    --ink: #1a1a1a;
+    --muted: #6b6b6b;
+    --accent: #1a5fb4;
+    --accent-soft: #eaf1fb;
+    --good: #146c3e;
+    --warn: #a12626;
+    --border: #e4e4e0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 32px 20px 80px; }
+  h1 { font-size: 28px; margin: 0 0 4px; }
+  .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+
+  .story {
+    background: var(--accent-soft);
+    border-left: 4px solid var(--accent);
+    padding: 16px 20px;
+    border-radius: 6px;
+    font-size: 15px;
+    margin-bottom: 24px;
+  }
+  .story p { margin: 0 0 8px; }
+  .story p:last-child { margin-bottom: 0; }
+
+  .disclaimer {
+    background: #fff6e5;
+    border: 1px solid #e8c568;
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: #5c4a12;
+    margin-bottom: 24px;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+  .card h2 { font-size: 17px; margin: 0 0 14px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.03em; }
+  input[type=number], input[type=text], select {
+    width: 100%; padding: 8px 10px; font-size: 15px; border: 1px solid var(--border);
+    border-radius: 5px; font-family: inherit; background: #fff;
+  }
+
+  .horizon-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .horizon-row label { margin: 0; min-width: 140px; text-transform: none; font-size: 14px; color: var(--ink); }
+  .horizon-row input { width: 90px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); }
+  th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); }
+  tr.actual { background: var(--accent-soft); }
+  tr.actual td:first-child { font-weight: bold; color: var(--accent); }
+  .growth-bar-wrap { display: flex; height: 8px; border-radius: 4px; overflow: hidden; width: 120px; background: #eee; }
+  .growth-bar-contrib { background: #9aa6b2; }
+  .growth-bar-growth { background: var(--good); }
+
+  .callout { margin-top: 14px; padding: 12px 16px; border-radius: 6px; font-size: 14px; }
+  .callout.good { background: #e9f7ef; color: var(--good); }
+  .callout.warn { background: #fdeeee; color: var(--warn); }
+
+  .btnbar { display: flex; gap: 10px; margin-top: 8px; }
+  .btnbar button {
+    padding: 8px 14px; border-radius: 6px; border: 1px solid var(--border);
+    background: #fff; cursor: pointer; font-family: inherit; font-size: 13px;
+  }
+  .btnbar button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .toggle-link { color: var(--accent); cursor: pointer; font-size: 14px; text-decoration: underline; }
+  #chartWrap { display: none; margin-top: 16px; }
+
+  .footer-note { font-size: 12px; color: var(--muted); margin-top: 30px; text-align: center; }
+  .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Compounding Calculator</h1>
+  <div class="subtitle">Personal Finance Hub — see what your own numbers do, not what you should do with them.</div>
+
+  <div class="story">
+    <p>Markets crash. Markets recover. In between, most people panic — selling during COVID, wars, downturns — trying to time moves that even professionals get wrong more often than they get right.</p>
+    <p>The single biggest driver of long-term wealth usually isn't picking the right moment to buy or sell. It's patience — staying invested, and starting as early as possible. This calculator shows you exactly what patience is worth, in your own numbers.</p>
+  </div>
+
+  <div class="disclaimer">
+    <strong>Not financial advice.</strong> This assumes a constant annual return, which real markets never actually deliver smoothly — real returns vary year to year. It's a simplification to illustrate the mechanics of compounding, not a prediction or recommendation. The creator is not a qualified financial advisor. Please speak to a regulated financial professional before making any real decisions.
+  </div>
+
+  <div class="card">
+    <h2>Your target</h2>
+    <div class="grid">
+      <div>
+        <label>Currency</label>
+        <select id="currency">
+          <option value="GBP">£ GBP</option>
+          <option value="USD">$ USD</option>
+          <option value="INR">₹ INR</option>
+        </select>
+      </div>
+      <div>
+        <label>Target pot</label>
+        <input type="text" id="targetAmount" inputmode="numeric" value="1,000,000">
+      </div>
+      <div>
+        <label>Current age</label>
+        <input type="number" id="currentAge" value="40" min="0" step="1">
+      </div>
+      <div>
+        <label>Target age</label>
+        <input type="number" id="targetAge" value="55" min="1" step="1">
+      </div>
+      <div>
+        <label>Assumed annual return (%)</label>
+        <input type="number" id="returnRate" value="7" min="0" step="0.1">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Reference horizons (all editable)</h2>
+    <div class="horizon-row"><label>Horizon A (years)</label><input type="number" id="h1" value="40" min="1" step="1"></div>
+    <div class="horizon-row"><label>Horizon B (years)</label><input type="number" id="h2" value="30" min="1" step="1"></div>
+    <div class="horizon-row"><label>Horizon C (years)</label><input type="number" id="h3" value="20" min="1" step="1"></div>
+    <div class="horizon-row"><label>Horizon D (years)</label><input type="number" id="h4" value="10" min="1" step="1"></div>
+    <div class="btnbar">
+      <button class="primary" id="calcBtn">Calculate</button>
+    </div>
+  </div>
+
+  <div class="card" id="resultsCard" style="display:none;">
+    <h2>What time actually costs (or buys) you</h2>
+    <div id="calloutsWrap"></div>
+    <table id="resultsTable">
+      <thead>
+        <tr><th>Horizon</th><th>Required monthly contribution</th><th>Total contributed</th><th>Growth (free money)</th><th>Split</th></tr>
+      </thead>
+      <tbody id="resultsBody"></tbody>
+    </table>
+    <div style="margin-top:8px; font-size:12px; color:var(--muted);">
+      <span class="legend-dot" style="background:#9aa6b2;"></span>Your own contributions
+      <span class="legend-dot" style="background:#146c3e; margin-left:14px;"></span>Investment growth
+    </div>
+    <div style="margin-top:14px;">
+      <span class="toggle-link" id="chartToggle">Show growth-over-time chart ▾</span>
+    </div>
+    <div id="chartWrap">
+      <canvas id="growthChart" height="260"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Save your numbers</h2>
+    <div class="btnbar">
+      <button id="exportBtn">Export as file (.json)</button>
+      <button id="importBtn">Import a saved file</button>
+      <input type="file" id="importFile" accept=".json" style="display:none;">
+    </div>
+    <div class="footer-note" style="text-align:left; margin-top:10px;">Nothing is sent anywhere — your numbers stay in this browser tab. Export gives you a small file you can reopen next time.</div>
+  </div>
+
+  <div class="footer-note">Personal Finance Hub · Compounding Calculator v1 · Not financial advice · No data collected, ever</div>
+
+</div>
+
+<script>
+// ---------- Core math ----------
+// Required monthly contribution (ordinary annuity, contributions at end of each month, no initial lump sum)
+// to reach a future value target, given a constant annual return compounded monthly.
+function requiredPMT(fv, annualRate, years) {
+  const r = annualRate / 12;
+  const n = Math.round(years * 12);
+  if (n <= 0) return fv;
+  if (r === 0) return fv / n;
+  const factor = Math.pow(1 + r, n);
+  return fv * r / (factor - 1);
+}
+
+// Growth-over-time series for a given horizon, contributing the required PMT each month.
+function growthSeries(pmt, annualRate, years) {
+  const r = annualRate / 12;
+  const n = Math.round(years * 12);
+  let balance = 0;
+  const series = [0];
+  for (let m = 1; m <= n; m++) {
+    balance = balance * (1 + r) + pmt;
+    if (m % 12 === 0) series.push(balance);
+  }
+  return series;
+}
+
+function fmtMoney(value, currency, decimals) {
+  decimals = decimals || 0;
+  const locale = currency === 'GBP' ? 'en-GB' : (currency === 'INR' ? 'en-IN' : 'en-US');
+  return new Intl.NumberFormat(locale, { style: 'currency', currency, maximumFractionDigits: decimals }).format(value);
+}
+
+// ---------- State ----------
+let chartInstance = null;
+
+function getInputs() {
+  const currency = document.getElementById('currency').value;
+  const targetRaw = document.getElementById('targetAmount').value.replace(/,/g, '');
+  const targetAmount = parseFloat(targetRaw) || 0;
+  const currentAge = parseFloat(document.getElementById('currentAge').value) || 0;
+  const targetAge = parseFloat(document.getElementById('targetAge').value) || 1;
+  const returnRate = (parseFloat(document.getElementById('returnRate').value) || 0) / 100;
+  const horizons = [
+    parseFloat(document.getElementById('h1').value) || 40,
+    parseFloat(document.getElementById('h2').value) || 30,
+    parseFloat(document.getElementById('h3').value) || 20,
+    parseFloat(document.getElementById('h4').value) || 10,
+  ];
+  return { currency, targetAmount, currentAge, targetAge, returnRate, horizons };
+}
+
+function formatAmountDisplay() {
+  const el = document.getElementById('targetAmount');
+  const num = parseFloat(el.value.replace(/,/g, '')) || 0;
+  el.value = num.toLocaleString('en-US');
+}
+
+function runCalc() {
+  const { currency, targetAmount, currentAge, targetAge, returnRate, horizons } = getInputs();
+  const actualHorizon = targetAge - currentAge;
+
+  // Build the full set of horizons to display: the 4 references, plus the actual one if distinct.
+  let allHorizons = horizons.map(h => ({ years: h, isActual: false }));
+  const matchesExisting = allHorizons.some(h => h.years === actualHorizon);
+  if (actualHorizon > 0 && !matchesExisting) {
+    allHorizons.push({ years: actualHorizon, isActual: true });
+  } else if (matchesExisting) {
+    allHorizons.forEach(h => { if (h.years === actualHorizon) h.isActual = true; });
+  }
+  allHorizons.sort((a, b) => b.years - a.years);
+
+  const rows = allHorizons.map(h => {
+    const pmt = requiredPMT(targetAmount, returnRate, h.years);
+    const n = Math.round(h.years * 12);
+    const totalContributed = pmt * n;
+    const totalGrowth = targetAmount - totalContributed;
+    return { ...h, pmt, totalContributed, totalGrowth };
+  });
+
+  renderResults(rows, currency, targetAmount, actualHorizon, returnRate);
+}
+
+function renderResults(rows, currency, targetAmount, actualHorizon, returnRate) {
+  const tbody = document.getElementById('resultsBody');
+  tbody.innerHTML = '';
+
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+    if (r.isActual) tr.className = 'actual';
+    const contribPct = (r.totalContributed / targetAmount) * 100;
+    const growthPct = 100 - contribPct;
+    const label = r.isActual
+      ? Math.round(r.years) + ' years — your horizon (age ' + document.getElementById('currentAge').value + ' → ' + document.getElementById('targetAge').value + ')'
+      : Math.round(r.years) + ' years';
+    tr.innerHTML =
+      '<td>' + label + '</td>' +
+      '<td><strong>' + fmtMoney(r.pmt, currency, 2) + '</strong>/mo</td>' +
+      '<td>' + fmtMoney(r.totalContributed, currency) + '</td>' +
+      '<td>' + fmtMoney(r.totalGrowth, currency) + ' (' + growthPct.toFixed(0) + '%)</td>' +
+      '<td><div class="growth-bar-wrap"><div class="growth-bar-contrib" style="width:' + contribPct + '%"></div><div class="growth-bar-growth" style="width:' + growthPct + '%"></div></div></td>';
+    tbody.appendChild(tr);
+  });
+
+  // Callouts
+  const calloutsWrap = document.getElementById('calloutsWrap');
+  calloutsWrap.innerHTML = '';
+
+  if (actualHorizon > 0) {
+    const actualRow = rows.find(r => r.isActual);
+    const longer = rows.filter(r => r.years > actualHorizon).sort((a,b) => a.years - b.years)[0];
+    const waitPMT = requiredPMT(targetAmount, returnRate, Math.max(actualHorizon - 5, 1));
+
+    if (actualRow) {
+      if (longer) {
+        const c1 = document.createElement('div');
+        c1.className = 'callout good';
+        c1.innerHTML = '<strong>What more time buys you:</strong> with a ' + longer.years + '-year horizon instead of your ' +
+          actualHorizon + '-year one, the required contribution drops from ' + fmtMoney(actualRow.pmt, currency, 2) +
+          '/mo to ' + fmtMoney(longer.pmt, currency, 2) + '/mo for the exact same ' + fmtMoney(targetAmount, currency) + ' target.';
+        calloutsWrap.appendChild(c1);
+      }
+
+      const c2 = document.createElement('div');
+      c2.className = 'callout warn';
+      c2.innerHTML = '<strong>The cost of waiting:</strong> if you delay starting by 5 more years, your horizon shrinks to ' +
+        Math.max(actualHorizon - 5, 1) + ' years, and the required monthly contribution rises to ' +
+        fmtMoney(waitPMT, currency, 2) + '/mo — ' + (((waitPMT / actualRow.pmt) - 1) * 100).toFixed(0) +
+        '% more than starting today.';
+      calloutsWrap.appendChild(c2);
+    }
+  }
+
+  document.getElementById('resultsCard').style.display = 'block';
+  drawChart(rows, currency, actualHorizon);
+}
+
+function drawChart(rows, currency, actualHorizon) {
+  const ctx = document.getElementById('growthChart').getContext('2d');
+  const maxYears = Math.max(...rows.map(r => r.years));
+  const labels = Array.from({length: Math.round(maxYears) + 1}, (_, i) => i);
+  const colors = ['#1a5fb4', '#146c3e', '#a12626', '#6b6b6b', '#8e44ad'];
+  const { returnRate } = getInputs();
+
+  const datasets = rows.map((r, i) => {
+    const series = growthSeries(r.pmt, returnRate, r.years);
+    const padded = labels.map((_, idx) => idx < series.length ? series[idx] : null);
+    return {
+      label: (r.isActual ? '★ ' : '') + Math.round(r.years) + ' yr horizon',
+      data: padded,
+      borderColor: colors[i % colors.length],
+      backgroundColor: 'transparent',
+      borderWidth: r.isActual ? 3 : 2,
+      pointRadius: 0,
+      tension: 0.1,
+      spanGaps: false,
+    };
+  });
+
+  if (chartInstance) chartInstance.destroy();
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { title: { display: true, text: 'Years' } },
+        y: { title: { display: true, text: 'Pot value (' + currency + ')' } }
+      },
+      plugins: { legend: { position: 'bottom' } }
+    }
+  });
+}
+
+// ---------- Save / export / import ----------
+function exportState() {
+  const state = {
+    currency: document.getElementById('currency').value,
+    targetAmount: document.getElementById('targetAmount').value,
+    currentAge: document.getElementById('currentAge').value,
+    targetAge: document.getElementById('targetAge').value,
+    returnRate: document.getElementById('returnRate').value,
+    h1: document.getElementById('h1').value,
+    h2: document.getElementById('h2').value,
+    h3: document.getElementById('h3').value,
+    h4: document.getElementById('h4').value,
+    savedAt: new Date().toISOString(),
+    tool: 'Personal Finance Hub - Compounding Calculator v1'
+  };
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'compounding-calculator-save.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importState(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const state = JSON.parse(e.target.result);
+      ['currency','targetAmount','currentAge','targetAge','returnRate','h1','h2','h3','h4'].forEach(key => {
+        if (state[key] !== undefined) document.getElementById(key).value = state[key];
+      });
+      runCalc();
+    } catch (err) {
+      alert('Could not read that file — is it a save file exported from this calculator?');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ---------- Wiring ----------
+document.getElementById('calcBtn').addEventListener('click', runCalc);
+
+document.getElementById('chartToggle').addEventListener('click', () => {
+  const wrap = document.getElementById('chartWrap');
+  const showing = wrap.style.display === 'block';
+  wrap.style.display = showing ? 'none' : 'block';
+  document.getElementById('chartToggle').textContent = showing ? 'Show growth-over-time chart ▾' : 'Hide growth-over-time chart ▴';
+});
+
+document.getElementById('exportBtn').addEventListener('click', exportState);
+document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFile').click());
+document.getElementById('importFile').addEventListener('change', (e) => {
+  if (e.target.files.length) importState(e.target.files[0]);
+});
+
+const targetEl = document.getElementById('targetAmount');
+targetEl.addEventListener('focus', () => { targetEl.value = targetEl.value.replace(/,/g, ''); });
+targetEl.addEventListener('blur', formatAmountDisplay);
+
+// Initialize
+runCalc();
+</script>
+</body>
+</html>
