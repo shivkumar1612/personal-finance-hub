@@ -80,6 +80,7 @@
   .callout { margin-top: 14px; padding: 12px 16px; border-radius: 6px; font-size: 14px; }
   .callout.good { background: #e9f7ef; color: var(--good); }
   .callout.warn { background: #fdeeee; color: var(--warn); }
+  .callout.info { background: var(--accent-soft); color: var(--accent); }
 
   .btnbar { display: flex; gap: 10px; margin-top: 8px; }
   .btnbar button {
@@ -102,12 +103,12 @@
   <div class="subtitle">Personal Finance Hub — see what your own numbers do, not what you should do with them.</div>
 
   <div class="story">
-    <p>Small recurring costs rarely feel like they matter — a coffee here, a takeaway there. Individually, none of them seem worth thinking about.</p>
-    <p>But money spent today is money that can no longer compound. This calculator shows any regular habit two ways: what it actually costs you in cash, and what that same money could have been worth if it had been invested instead. Both numbers are real — it's your call which one matters more to you.</p>
+    <p>This isn't about telling you to give anything up. A coffee, a subscription, a membership — these exist because they're worth something to you, and that's a perfectly good reason to keep them.</p>
+    <p>What's harder to see is the full cost. This calculator simply shows it: what a habit actually costs in cash over time, and what that same money could have been worth if invested instead. Knowing the true cost doesn't mean you have to change anything — it just means the choice to keep it is an informed one.</p>
   </div>
 
   <div class="disclaimer">
-    <strong>Not financial advice.</strong> The "invested value" assumes a constant annual return, which real markets never actually deliver smoothly — real returns vary year to year, and this is not a prediction. This tool doesn't tell you whether to keep or cut a habit — it just shows you the numbers behind it. The creator is not a qualified financial advisor. Please speak to a regulated financial professional before making any real decisions.
+    <strong>Not financial advice.</strong> The "invested value" assumes a constant annual return, which real markets never actually deliver smoothly — real returns vary year to year, and this is not a prediction. This tool isn't telling you to change any habit — it simply shows you the numbers behind it, so you can decide for yourself. The creator is not a qualified financial advisor. Please speak to a regulated financial professional before making any real decisions.
   </div>
 
   <div class="card">
@@ -139,6 +140,7 @@
           <option value="day">Day</option>
           <option value="week">Week</option>
           <option value="month">Month</option>
+          <option value="year">Year</option>
         </select>
       </div>
       <div>
@@ -160,7 +162,7 @@
   </div>
 
   <div class="card" id="resultsCard" style="display:none;">
-    <h2>What this habit really costs</h2>
+    <h2>The true cost, in your own numbers</h2>
     <div id="calloutsWrap"></div>
     <table id="resultsTable">
       <thead>
@@ -196,7 +198,10 @@
 
 <script>
 // ---------- Core math ----------
-const PERIODS_PER_MONTH = { day: 30.4368, week: 4.34524, month: 1 };
+const PERIODS_PER_MONTH = { day: 30.4368, week: 4.34524, month: 1, year: 1/12 };
+// day/week use an average (calendar months vary in length) — flagged as "roughly" in the UI.
+// month/year are exact conversions — no averaging involved, just arithmetic.
+const EXACT_PERIODS = { day: false, week: false, month: true, year: true };
 
 // Future value of an ordinary annuity: contributing `pmt` at the end of each month,
 // at a constant monthly rate `r`, for `n` months.
@@ -253,9 +258,19 @@ function getInputs() {
 }
 
 function updateMonthlyCostPreview() {
-  const { currency, monthlyCost } = getInputs();
-  document.getElementById('monthlyCostPreview').textContent =
-    'That works out to roughly ' + fmtMoney(monthlyCost, currency, 2) + ' a month.';
+  const { currency, monthlyCost, periodUnit, costPerInstance, timesPer } = getInputs();
+  const el = document.getElementById('monthlyCostPreview');
+
+  if (periodUnit === 'month') {
+    el.textContent = "That's " + fmtMoney(monthlyCost, currency, 2) + ' a month.';
+  } else if (periodUnit === 'year') {
+    const annual = costPerInstance * timesPer;
+    el.textContent = "That's " + fmtMoney(annual, currency, 2) + ' a year — exactly ' + fmtMoney(monthlyCost, currency, 2) + ' a month.';
+  } else {
+    el.textContent = 'That works out to roughly ' + fmtMoney(monthlyCost, currency, 2) +
+      ' a month (based on an average — the exact amount varies slightly month to month since ' +
+      (periodUnit === 'day' ? 'months have different numbers of days' : 'months don\'t divide evenly into weeks') + ').';
+  }
 }
 
 function runCalc() {
@@ -296,18 +311,18 @@ function renderResults(rows, currency, habitLabel, monthlyCost, returnRate) {
   const shortest = rows[0];
 
   const c1 = document.createElement('div');
-  c1.className = 'callout warn';
+  c1.className = 'callout info';
   c1.innerHTML = '<strong>' + habitLabel + ':</strong> at ' + fmtMoney(monthlyCost, currency, 2) + '/month, over ' +
-    Math.round(longest.years) + ' years you will actually spend ' + fmtMoney(longest.nominalSpend, currency) +
-    ' in cash — but that same money, invested at ' + (returnRate * 100).toFixed(1) + '% a year, could have grown to ' +
-    fmtMoney(longest.investedValue, currency) + '.';
+    Math.round(longest.years) + ' years this comes to ' + fmtMoney(longest.nominalSpend, currency) +
+    ' in cash spent — and that same money, invested at ' + (returnRate * 100).toFixed(1) + '% a year, would be worth ' +
+    fmtMoney(longest.investedValue, currency) + '. Neither number is "the cost" on its own — together they show the full picture.';
   calloutsWrap.appendChild(c1);
 
   const c2 = document.createElement('div');
   c2.className = 'callout good';
-  c2.innerHTML = '<strong>The compounding gap:</strong> the difference between cash spent and invested value grows the longer the habit runs — ' +
+  c2.innerHTML = '<strong>Why the horizon matters:</strong> the gap between cash spent and invested value widens the longer the habit continues — ' +
     fmtMoney(shortest.gap, currency) + ' over ' + Math.round(shortest.years) + ' years, versus ' +
-    fmtMoney(longest.gap, currency) + ' over ' + Math.round(longest.years) + ' years. That gap is money the habit is quietly costing you on top of the cash — only you can decide if the habit is worth it.';
+    fmtMoney(longest.gap, currency) + ' over ' + Math.round(longest.years) + " years. That's not a verdict on the habit — it's just what compounding does to any recurring cost, so it's worth seeing clearly.";
   calloutsWrap.appendChild(c2);
 
   document.getElementById('resultsCard').style.display = 'block';
